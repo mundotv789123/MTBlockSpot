@@ -104,7 +104,7 @@ public class SpotListener implements Listener {
             e.setCancelled(true);
             return;
         }
-        e.getRegion().removeTraceRadiuns(p, main);
+        Region.removeTraceRadiuns(p, main);
         p.sendMessage("§cDesprotegido!");
     }
 

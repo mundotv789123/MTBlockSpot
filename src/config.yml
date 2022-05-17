@@ -25,5 +25,7 @@ database:
   mysql_database: 'mtblockspot'
 
 messages:
+  on_claim: '&aÁrea protegida'
+  on_unclaim: '&cÁrea desprotegida'
   on_pvp: '&cO pvp foi desativado nessa área'
   on_interact: '&cEssa área está protegida!'

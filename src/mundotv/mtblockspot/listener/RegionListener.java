@@ -192,35 +192,49 @@ public class RegionListener implements Listener {
     }
 
     /* Outhers Events */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPistonExtend(BlockPistonExtendEvent e) {
         Location loc = e.getBlock().getLocation();
         Region pr = this.getRegionByLocation(loc, 1);
         for (Block b : e.getBlocks()) {
             Location bloc = b.getLocation();
             Region r = this.getRegionByLocation(bloc, 1);
-            if (r != null && (pr == null || !r.getOwn().equals(pr.getOwn()))) {
+            if (r == null) {
+                return;
+            }
+            if (r.isBlockLocation(bloc.getBlockX(), bloc.getBlockY(), bloc.getBlockZ())) {
+                e.setCancelled(true);
+                return;
+            }
+            if ((pr == null || !r.getOwn().equals(pr.getOwn()))) {
                 e.setCancelled(true);
                 return;
             }
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPistonRetract(BlockPistonRetractEvent e) {
         Location loc = e.getBlock().getLocation();
         Region pr = this.getRegionByLocation(loc);
         for (Block b : e.getBlocks()) {
             Location bloc = b.getLocation();
             Region r = this.getRegionByLocation(bloc, 1);
-            if (r != null && (pr == null || !r.getOwn().equals(pr.getOwn()))) {
+            if (r == null) {
+                return;
+            }
+            if (r.isBlockLocation(bloc.getBlockX(), bloc.getBlockY(), bloc.getBlockZ())) {
+                e.setCancelled(true);
+                return;
+            }
+            if ((pr == null || !r.getOwn().equals(pr.getOwn()))) {
                 e.setCancelled(true);
                 return;
             }
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityExplode(EntityExplodeEvent e) {
         for (int i = 0; i < e.blockList().size(); i++) {
             Block b = e.blockList().get(i);
