@@ -24,15 +24,37 @@ public class RegionCommands implements CommandExecutor {
         if (sender == null) {
             return true;
         }
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("§cVocê não pode usar esse comando!");
-            return true;
-        }
-        Player p = (Player) sender;
+
         if (args.length < 1) {
-            sendHelp(p);
+            sendHelp(sender);
             return true;
         }
+
+        if (!(sender instanceof Player)) {
+            switch (args[0]) {
+                case "give":
+                    if (!sender.hasPermission("mtblockspot.admin.give")) {
+                        sender.sendMessage("§cSem permissão!");
+                        break;
+                    }
+                    if (args.length != 3) {
+                        sender.sendMessage("/bs give <player> <name>");
+                        break;
+                    }
+                    Player p = Bukkit.getPlayer(args[1]);
+                    if (p == null) {
+                        sender.sendMessage("§cJogador " + args[1] + "não encontrado!");
+                        break;
+                    }
+                    give(p, args[2]);
+                    break;
+                default:
+                    sender.sendMessage("§cVocê não pode usar esse comando!");
+            }
+            return true;
+        }
+
+        Player p = (Player) sender;
         switch (args[0]) {
             case "off":
                 updateStatus(p, false);
@@ -50,6 +72,7 @@ public class RegionCommands implements CommandExecutor {
                     break;
                 }
                 give(p, args[1]);
+                break;
             case "pvp":
                 if (args.length != 2 || (!args[1].equals("on") && !args[1].equals("off"))) {
                     p.sendMessage("/bs pvp <on/off>");
@@ -87,7 +110,7 @@ public class RegionCommands implements CommandExecutor {
         return true;
     }
 
-    public void sendHelp(Player p) {
+    public void sendHelp(CommandSender s) {
         String msg = "\n\n"
                 + "§e=====================================================\n\n"
                 + "§eTodos os comandos que você tem acesso.\n"
@@ -97,14 +120,14 @@ public class RegionCommands implements CommandExecutor {
                 + "§f/bs add <jogador> §e- Adicionar amigo no seu terreno\n"
                 + "§f/bs remove <jogador> §e- Remove amigo no seu terreno\n"
                 + "§f/bs trace §e- Visualizar área de proteção\n";
-        if (p.hasPermission("mtblockspot.admin")) {
+        if (s.hasPermission("mtblockspot.admin")) {
             msg += "\n§eComandos para admin:\n"
                     + "§f/bs admin §e- Conseguir quebrar terrenos dos jogadores\n"
                     + "§f/bs give <jogador> <bloco> §e- Da bloco personalizado para o jogador\n"
                     + "§f/bs reload §e- Recarregar configurações\n";
         }
         msg += "\n§e=====================================================";
-        p.sendMessage(msg);
+        s.sendMessage(msg);
     }
 
     public void pvp(Player p, boolean on) {

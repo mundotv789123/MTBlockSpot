@@ -42,7 +42,7 @@ public class RegionListener implements Listener {
     }
     
     /* Claim Events */
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onBlockPlaceRegionClaim(BlockPlaceEvent e) {
         for (BlockSpot sb : main.getBlocks()) {
             if (sb.isOnlyBlock()) {
@@ -97,7 +97,7 @@ public class RegionListener implements Listener {
     }
 
     /* Player Events */
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onBlockPlace(BlockPlaceEvent e) {
         Location loc = e.getBlock().getLocation();
         Region r = this.getRegionByLocation(loc);
@@ -109,7 +109,7 @@ public class RegionListener implements Listener {
         e.setCancelled(rie.isCancelled());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onBlockBreak(BlockBreakEvent e) {
         Location loc = e.getBlock().getLocation();
         Region r = this.getRegionByLocation(loc);
@@ -121,7 +121,7 @@ public class RegionListener implements Listener {
         e.setCancelled(rie.isCancelled());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onPlayerInteract(PlayerInteractEvent e) {
         Block b = e.getClickedBlock();
         Location loc = (b == null ? e.getPlayer().getLocation() : b.getLocation());
@@ -134,7 +134,7 @@ public class RegionListener implements Listener {
         e.setCancelled(rie.isCancelled());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onPlayerInteractEntity(PlayerInteractEntityEvent e) {
         Location loc = e.getRightClicked().getLocation();
         Region r = this.getRegionByLocation(loc);
@@ -146,7 +146,7 @@ public class RegionListener implements Listener {
         e.setCancelled(rie.isCancelled());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent e) {
         Location loc = e.getRightClicked().getLocation();
         Region r = this.getRegionByLocation(loc);
@@ -159,7 +159,7 @@ public class RegionListener implements Listener {
     }
 
     /* Entity Events */
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onEntityDamageByEntity(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player)) {
             return;
@@ -176,7 +176,7 @@ public class RegionListener implements Listener {
         e.setCancelled(rie.isCancelled());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onHangingBreakByEntity(HangingBreakByEntityEvent e) {
         if (!(e.getRemover() instanceof Player)) {
             return;
