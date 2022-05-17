@@ -1,49 +1,29 @@
-messages:
-  errors:
-    internal: '&cOcorreu um erro interno, entre em contato com administrador do servidor para obter ajuda!'
-    only_own: '&cApenas o &e{own} &cpode remover esse bloco de proteção'
-    wrong_command: '&cComando errado, use &e{usage}'
-    out_region: '&cVocê precisa está em um terreno para usar esse comando!'
-    radiuns_limit: '&cVocê está muito próxio a um bloco de proteção, afaste-se para poder proteger \nCaso não queira proteger uma área basta usar &eshift &cou &e/bs off'
-    not_permission: '&cVocê não tem permissão para usar esse bloco'
-  protect_on: '&aVocê ativou proteção por bloco'
-  protect_off: '&cVocê desativou proteção por bloco'
-  block_removed: '&cVocê removeu seu bloco de proteção'
-  player_removed: '&cVocê removeu &e{nick} &cda sua área'
-  player_added: '&aVocê adicionou &e{nick} &ada sua área'
+limits:
+  max_width: 320
+  min_width: -64
+  worlds: ['world', 'world_nether']
+
+blocks_exclude:
+  interact:
+  - CRAFTING_TABLE
+  farm:
+  - PUPKIN_STEM
+  - MELON_STEM
+  break: []
 
 blocks:
-  lapis:
-    block_id: LAPIS_BLOCK
-    radius: 3
-    message_place: '&aVocê protegeu sua área (7x7)'
   iron:
-    block_id: IRON_BLOCK
+    material: iron_block
     radius: 5
-    message_place: '&aVocê protegeu sua área (11x11)'
-  gold:
-    block_id: GOLD_BLOCK
-    radius: 10
-    message_place: '&aVocê protegeu sua área (21x21)'
-  diamond:
-    block_id: DIAMOND_BLOCK
-    radius: 15
-    message_place: '&aVocê protegeu sua área (31x31)'
-#exemplo de um bloco personalizado
-  emerald:
-    block_id: EMERALD_BLOCK
-    permission: mtspotblock.block.emerald
-    name: '&eBloco de proteção esmeralda'
-    lore:
-    - '&abloco de proteção'
-    - '&c(51x51)'
-    radius: 25
-    message_place: '&aVocê protegeu sua área (51x51)'
-  
-mysql:
-  enabled: false 
-  username: admin
-  host: localhost
-  database: blockspot
-  password: password
-  
+
+database:
+  type: json
+  json_file: 'regions.json'
+  mysql_host: 'localhost'
+  mysql_username: 'admin'
+  mysql_password: 'password'
+  mysql_database: 'mtblockspot'
+
+messages:
+  on_pvp: '&cO pvp foi desativado nessa área'
+  on_interact: '&cEssa área está protegida!'

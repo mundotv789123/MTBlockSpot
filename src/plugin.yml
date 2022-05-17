@@ -1,7 +1,8 @@
-main: me.mundotv.mtblockspot.Main
+main: mundotv.mtblockspot.MTMain
 name: MTBlockSpot
 version: 1.0
 author: mundotv789123
+website: github.com/mundotv789123
 api-version: 1.13
 commands:
   blockspot:
