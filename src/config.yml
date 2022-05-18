@@ -29,3 +29,8 @@ messages:
   on_unclaim: '&cÁrea desprotegida'
   on_pvp: '&cO pvp foi desativado nessa área'
   on_interact: '&cEssa área está protegida!'
+  error_world: '&cVocê não pode usar blocos de proteção nesse mundo!'
+  error_permission: '&cVocê não tem permissão para usar esse bloco de proteção!'
+  error_limit: '&cVocê atingiu seu limite de blocos de proteção de {limit}!'
+  error_near: '&cExitem blocos de proteção próximos de você!'
+  error_protected: '&cEssa área está protegida!'

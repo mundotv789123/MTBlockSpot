@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import mundotv.mtblockspot.config.Region;
+import org.bukkit.Location;
+import org.bukkit.World;
 
 public abstract class RegionDatabase {
     
@@ -19,6 +21,14 @@ public abstract class RegionDatabase {
             }
         }
         return null;
+    }
+    
+    public Region getRegionByRadius(Location loc, int r) {
+        World w = loc.getWorld();
+        if (w == null) {
+            return null;
+        }
+        return getRegionByRadius(loc.getBlockX(), loc.getBlockZ(), r, w.getName());
     }
     
     public List<Region> getRegionsByOwn(String own) {

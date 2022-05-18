@@ -3,27 +3,23 @@ package mundotv.mtblockspot.listener;
 import mundotv.mtblockspot.MTMain;
 import mundotv.mtblockspot.config.BlockSpot;
 import mundotv.mtblockspot.config.Region;
-import mundotv.mtblockspot.events.RegionClaimEvent;
-import mundotv.mtblockspot.events.RegionInteractEvent;
-import mundotv.mtblockspot.events.RegionUnclaimEvent;
-import org.bukkit.Bukkit;
+import mundotv.mtblockspot.events.PlayerRegionInteractEvent;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.hanging.HangingBreakByEntityEvent;
-import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 
 public class RegionListener implements Listener {
 
@@ -33,217 +29,185 @@ public class RegionListener implements Listener {
         this.main = main;
     }
 
-    private Region getRegionByLocation(Location loc, int r) {
-        return this.main.getDatabase().getRegionByRadius(loc.getBlockX(), loc.getBlockZ(), r, loc.getWorld().getName());
-    }
-
-    private Region getRegionByLocation(Location loc) {
-        return this.getRegionByLocation(loc, 0);
-    }
-    
-    /* Claim Events */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     protected void onBlockPlaceRegionClaim(BlockPlaceEvent e) {
-        for (BlockSpot sb : main.getBlocks()) {
-            if (sb.isOnlyBlock()) {
-                if (!sb.getMaterial().equals(e.getBlock().getType())) {
-                    continue;
-                }
-            } else if (!e.getItemInHand().isSimilar(sb.getItem())) {
-                continue;
-            }
-            if (e.getPlayer().hasMetadata("mtspotblock-disabled")) {
-                if (!sb.isOnlyBlock()) {
-                    e.setCancelled(true);
-                }
-                return;
-            }
-            Location loc = e.getBlock().getLocation();
-            RegionClaimEvent rce = new RegionClaimEvent(e.getPlayer(), sb, e.getBlock());
-            Bukkit.getPluginManager().callEvent(rce);
-            e.setCancelled(rce.isCancelled());
-            if (!rce.isCancelled()) {
-                Region r = new Region(e.getPlayer().getName(), sb.getName(), loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), sb.getRadius());
-                e.setCancelled(!this.main.getDatabase().addRegion(r));
-            }
+        Player p = e.getPlayer();
+        if (p.hasMetadata("mtspotblock-disabled")) {
             return;
+        }
+        /* verificando se é bloco de proteção */
+        BlockSpot bs = getBlockSpot(e.getItemInHand(), e.getBlock().getType());
+        if (bs == null) {
+            return;
+        }
+        e.setCancelled(true);
+        
+        /* verificando blocos próximo */
+        Location loc = e.getBlock().getLocation();
+        Region r = main.getDatabase().getRegionByRadius(loc, bs.getRadius());
+        if (r != null) {
+            p.sendMessage("§cBlocos próximos");
+            return;
+        }
+
+        /* verificando permissões */
+        if (!p.hasPermission("mtblockspot.blocks." + bs.getName())) {
+            p.sendMessage("§cVocê não pode usar esse bloco de proteção");
+            e.setCancelled(true);
+            return;
+        }
+
+        /* verificando limite de blocos */
+        int limit = getBlocksLimit(p);
+        if (limit == 0 || (limit > 0 && limit <= main.getDatabase().getRegionsByOwn(p.getName()).size())) {
+            p.sendMessage("§cLimite de blocos ultrapassados");
+            return;
+        }
+
+        /* protegendo área */
+        r = new Region(p, bs, loc);
+        if (this.main.getDatabase().addRegion(r)) {
+            e.setCancelled(false);
+            p.sendMessage("§aProtegido!");
         }
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOW)
+    @EventHandler(ignoreCancelled = true)
     protected void onBlockBreakRegionClaim(BlockBreakEvent e) {
         Location loc = e.getBlock().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r != null && r.isBlockLocation(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
-            RegionUnclaimEvent rue = new RegionUnclaimEvent(e.getPlayer(), r, e, loc);
-            Bukkit.getPluginManager().callEvent(rue);
+        Region r = main.getDatabase().getRegionByRadius(loc, 0);
+        if (r == null || !r.isBlockLocation(loc)) {
+            return;
+        }
+        e.setCancelled(true);
+
+        Player p = e.getPlayer();
+
+        /* verificando permissão */
+        if (!r.getOwn().equals(p.getName())) {
+            e.getPlayer().sendMessage("§cVocê não pode fazer isso!");
+            return;
+        }
+
+        /* removendo proteção */
+        if (!this.main.getDatabase().removeRegion(r)) {
+            return;
+        }
+        BlockSpot sp = getBlockSpot(r.getBlockName());
+        if (sp != null) {
+            e.getBlock().setType(Material.AIR);
+            e.getBlock().getWorld().dropItemNaturally(loc, sp.getItem());
+            return;
+        }
+        e.getBlock().getDrops().forEach(drop -> {
+            e.getBlock().getWorld().dropItemNaturally(loc, drop);
+        });
+    }
+
+    @EventHandler
+    protected void onPlayerRegionInteractEvent(PlayerRegionInteractEvent e) {
+        /* verificando pvp */
+        Player p = e.getPlayer();
+        Region.removeTraceRadiuns(p, main);
+        if (e.getEvent() instanceof EntityDamageByEntityEvent) {
             e.setCancelled(true);
-            if (!rue.isCancelled()) {
-                if (!this.main.getDatabase().removeRegion(r)) {
-                    return;
+            EntityDamageByEntityEvent ee = (EntityDamageByEntityEvent) e.getEvent();
+            if (ee.getEntity() instanceof Monster) {
+                e.setCancelled(false);
+            }
+            if (ee.getEntity() instanceof Player) {
+                if (e.getRegion().getOptions().isPvp()) {
+                    e.setCancelled(false);
+                } else {
+                    p.sendMessage("pvp off!");
                 }
-                for (BlockSpot sp : main.getBlocks()) {
-                    if (sp.getName().equals(r.getBlockName())) {
-                        e.getBlock().setType(Material.AIR);
-                        e.getBlock().getWorld().dropItemNaturally(loc, sp.getItem());
-                        return;
-                    }
+            }
+            return;
+        }
+
+        /* verificando farm */
+        if (e.getEvent() instanceof PlayerInteractEvent) {
+            PlayerInteractEvent ie = (PlayerInteractEvent) e.getEvent();
+            Block b = ie.getClickedBlock();
+            if (b == null) {
+                return;
+            }
+            if (!(b.getBlockData() instanceof Ageable) /*&& !farms_blocks.contains(b.getType().toString())*/) {
+                if (e.getRegion().isBlockLocation(b.getLocation())) {
+                    e.getRegion().traceRadiuns(p, main);
                 }
-                e.getBlock().getDrops().forEach(drop -> {
-                    e.getBlock().getWorld().dropItemNaturally(loc, drop);
-                });
-            }
-        }
-    }
-
-    /* Player Events */
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onBlockPlace(BlockPlaceEvent e) {
-        Location loc = e.getBlock().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(e.getPlayer(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onBlockBreak(BlockBreakEvent e) {
-        Location loc = e.getBlock().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(e.getPlayer(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onPlayerInteract(PlayerInteractEvent e) {
-        Block b = e.getClickedBlock();
-        Location loc = (b == null ? e.getPlayer().getLocation() : b.getLocation());
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(e.getPlayer(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onPlayerInteractEntity(PlayerInteractEntityEvent e) {
-        Location loc = e.getRightClicked().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(e.getPlayer(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent e) {
-        Location loc = e.getRightClicked().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(e.getPlayer(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    /* Entity Events */
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onEntityDamageByEntity(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Player)) {
-            return;
-        }
-        Location loc = e.getEntity().getLocation();
-        Location dloc = e.getDamager().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        r = r != null ? r : this.getRegionByLocation(dloc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent(((Player) e.getDamager()), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    protected void onHangingBreakByEntity(HangingBreakByEntityEvent e) {
-        if (!(e.getRemover() instanceof Player)) {
-            return;
-        }
-        Location loc = e.getEntity().getLocation();
-        Region r = this.getRegionByLocation(loc);
-        if (r == null) {
-            return;
-        }
-        RegionInteractEvent rie = new RegionInteractEvent((Player) e.getRemover(), r, e, loc);
-        Bukkit.getPluginManager().callEvent(rie);
-        e.setCancelled(rie.isCancelled());
-    }
-
-    /* Outhers Events */
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockPistonExtend(BlockPistonExtendEvent e) {
-        Location loc = e.getBlock().getLocation();
-        Region pr = this.getRegionByLocation(loc, 1);
-        for (Block b : e.getBlocks()) {
-            Location bloc = b.getLocation();
-            Region r = this.getRegionByLocation(bloc, 1);
-            if (r == null) {
                 return;
             }
-            if (r.isBlockLocation(bloc.getBlockX(), bloc.getBlockY(), bloc.getBlockZ())) {
-                e.setCancelled(true);
+
+            if (!e.isCancelled()) {
                 return;
             }
-            if ((pr == null || !r.getOwn().equals(pr.getOwn()))) {
-                e.setCancelled(true);
+
+            if (!ie.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                 return;
             }
+
+            if (!e.getRegion().getOptions().isFarm()) {
+                p.sendMessage("Coleita de plantação desativada!");
+                return;
+            }
+            Ageable age = (Ageable) b.getBlockData();
+            if (age.getAge() < age.getMaximumAge()) {
+                return;
+            }
+            for (ItemStack item : b.getDrops()) {
+                b.getWorld().dropItemNaturally(b.getLocation(), item);
+            }
+            age.setAge(0);
+            b.setBlockData(age);
+            return;
         }
+        if (e.isCancelled()) {
+            p.sendMessage("Protegido!");
+        }
+
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockPistonRetract(BlockPistonRetractEvent e) {
-        Location loc = e.getBlock().getLocation();
-        Region pr = this.getRegionByLocation(loc);
-        for (Block b : e.getBlocks()) {
-            Location bloc = b.getLocation();
-            Region r = this.getRegionByLocation(bloc, 1);
-            if (r == null) {
-                return;
+    /* utils */
+    private BlockSpot getBlockSpot(ItemStack item, Material material) {
+        for (BlockSpot b : main.getBlocks()) {
+            if (b.isOnlyBlock()) {
+                if (b.getMaterial().equals(material)) {
+                    return b;
+                }
+                continue;
             }
-            if (r.isBlockLocation(bloc.getBlockX(), bloc.getBlockY(), bloc.getBlockZ())) {
-                e.setCancelled(true);
-                return;
-            }
-            if ((pr == null || !r.getOwn().equals(pr.getOwn()))) {
-                e.setCancelled(true);
-                return;
+            if (item.isSimilar(b.getItem())) {
+                return b;
             }
         }
+        return null;
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityExplode(EntityExplodeEvent e) {
-        for (int i = 0; i < e.blockList().size(); i++) {
-            Block b = e.blockList().get(i);
-            Location loc = b.getLocation();
-            Region r = this.getRegionByLocation(loc);
-            if (r != null) {
-                e.blockList().remove(b);
-                i--;
+    private BlockSpot getBlockSpot(String name) {
+        for (BlockSpot b : main.getBlocks()) {
+            if (b.getName().equals(name)) {
+                return b;
             }
         }
+        return null;
+    }
+
+    public int getBlocksLimit(Player p) {
+        if (!p.hasPermission("mtblockspot.limit") || p.hasPermission("mtblockspot.limit.*")) {
+            return -1;
+        }
+        for (PermissionAttachmentInfo pai : p.getEffectivePermissions()) {
+            if (!pai.getPermission().startsWith("mtblockspot.limit") || pai.getPermission().equals("mtblockspot.limit")) {
+                continue;
+            }
+            String[] ps = pai.getPermission().split("\\.");
+            try {
+                return Integer.parseInt(ps[ps.length - 1]);
+            } catch (NumberFormatException ex) {
+                return 0;
+            }
+        }
+        return 0;
     }
 }

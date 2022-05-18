@@ -9,8 +9,8 @@ import mundotv.mtblockspot.config.BlockSpot;
 import mundotv.mtblockspot.database.RegionDatabase;
 import mundotv.mtblockspot.database.RegionJson;
 import mundotv.mtblockspot.database.RegionMySQL;
+import mundotv.mtblockspot.listener.PlayerListener;
 import mundotv.mtblockspot.listener.RegionListener;
-import mundotv.mtblockspot.listener.SpotListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.PluginCommand;
@@ -45,8 +45,9 @@ public class MTMain extends JavaPlugin {
 
     private void loadEvents() {
         PluginManager pm = Bukkit.getPluginManager();
+        pm.registerEvents(new PlayerListener(database), this);
         pm.registerEvents(new RegionListener(this), this);
-        List<String> worlds = (getConfig().isList("limits.worlds") ? (List<String>) getConfig().getList("limits.worlds") : new ArrayList());
+        /*List<String> worlds = (getConfig().isList("limits.worlds") ? (List<String>) getConfig().getList("limits.worlds") : new ArrayList());
         int maxw = getConfig().getInt("limits.max_width");
         int minw = getConfig().getInt("limits.min_width");
         if (maxw < minw) {
@@ -56,7 +57,7 @@ public class MTMain extends JavaPlugin {
         List<String> farms_blocks = getConfig().getStringList("blocks_exclude.farm");
         List<String> interact_blocks = getConfig().getStringList("blocks_exclude.interact");
         
-        pm.registerEvents(new SpotListener(this, worlds, maxw, minw, farms_blocks, interact_blocks), this);
+        pm.registerEvents(new SpotListener(this, worlds, maxw, minw, farms_blocks, interact_blocks), this);*/
     }
 
     private void loadCommands() {
