@@ -120,7 +120,7 @@ public class Region {
 
         loc.add(0, -1, 0);*/
         loc.setY(p.getLocation().getY());
-        p.sendBlockChange(loc, Bukkit.createBlockData(Material.END_ROD));
+        p.sendBlockChange(loc, Bukkit.createBlockData(Material.TORCH));
         return loc;
     }
 

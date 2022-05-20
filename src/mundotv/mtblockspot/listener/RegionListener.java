@@ -46,6 +46,7 @@ public class RegionListener implements Listener {
         Location loc = e.getBlock().getLocation();
         Region r = main.getDatabase().getRegionByRadius(loc, bs.getRadius());
         if (r != null) {
+            r.traceRadiuns(p, main);
             p.sendMessage("§cBlocos próximos");
             return;
         }
@@ -67,6 +68,7 @@ public class RegionListener implements Listener {
         /* protegendo área */
         r = new Region(p, bs, loc);
         if (this.main.getDatabase().addRegion(r)) {
+            r.traceRadiuns(p, main);
             e.setCancelled(false);
             p.sendMessage("§aProtegido!");
         }
@@ -93,6 +95,7 @@ public class RegionListener implements Listener {
         if (!this.main.getDatabase().removeRegion(r)) {
             return;
         }
+        Region.removeTraceRadiuns(p, main);
         BlockSpot sp = getBlockSpot(r.getBlockName());
         if (sp != null) {
             e.getBlock().setType(Material.AIR);
